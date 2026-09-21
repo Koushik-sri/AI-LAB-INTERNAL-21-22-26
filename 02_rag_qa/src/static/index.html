@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG-Based Question Answering AI Studio | Retrieval Augmented Generation</title>
+    <meta name="description" content="Complete RAG pipeline with document chunking, vector embeddings, similarity retrieval, and grounded answer generation.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --card-bg: rgba(20, 26, 42, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+            --accent-glow: rgba(168, 85, 247, 0.25);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success-color: #10b981;
+            --info-color: #3b82f6;
+            --warning-color: #f59e0b;
+            --code-bg: #050811;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(168, 85, 247, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.08) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1.25rem 2rem;
+            background: rgba(9, 13, 22, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .logo-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .badge-status {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #818cf8;
+            box-shadow: 0 0 10px #818cf8;
+        }
+
+        /* Banner for API Key notification */
+        .api-banner {
+            max-width: 1200px;
+            margin: 1.5rem auto 0 auto;
+            padding: 1rem 1.5rem;
+            width: 100%;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .api-banner-text strong {
+            color: #60a5fa;
+        }
+
+        .api-banner-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.3rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 1.5rem auto;
+            padding: 0 1.5rem;
+            width: 100%;
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .workspace-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .input-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .search-box-container {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .search-input {
+            flex: 1;
+            background: #050811;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #a855f7;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .btn-query {
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: 12px;
+            padding: 0 1.75rem;
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .btn-query:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .sample-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 0.4rem 0.85rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chip:hover {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border-color: rgba(168, 85, 247, 0.4);
+        }
+
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .answer-box {
+            background: #050811;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .answer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .mode-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .answer-text {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-main);
+            white-space: pre-wrap;
+        }
+
+        .sources-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .source-tag {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .chunks-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .chunks-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .chunk-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .chunk-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .match-score {
+            color: #34d399;
+            font-weight: 600;
+        }
+
+        .chunk-snippet {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        /* Sidebar Drawer */
+        .sidebar {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            height: fit-content;
+        }
+
+        .sidebar h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 0.75rem;
+        }
+
+        .ingest-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .form-input, .form-textarea {
+            background: #050811;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.65rem 0.85rem;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #a855f7;
+        }
+
+        .btn-ingest {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.6rem;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-ingest:hover {
+            background: rgba(168, 85, 247, 0.2);
+            border-color: #a855f7;
+            color: #c084fc;
+        }
+
+        .docs-list {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .doc-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.6rem 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-group">
+            <div class="logo-icon">RAG</div>
+            <div class="logo-title">RAG-Based Question Answering AI Studio</div>
+        </div>
+        <div id="statusBadge" class="badge-status">Vector Store Online</div>
+    </header>
+
+    <div class="api-banner">
+        <div class="api-banner-text">
+            <strong>API Key Status:</strong> <span id="apiBannerMsg">Google Gemini 2.5 Flash Active</span>
+        </div>
+        <div id="apiBannerBadge" class="api-banner-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">Gemini 2.5 Active</div>
+    </div>
+
+    <main>
+        <div class="workspace-card">
+            <div class="input-header">
+                <h2>Query Knowledge Base Documents</h2>
+                <p>Ask questions about company policies or system architecture. The RAG pipeline retrieves relevant vector chunks and generates grounded answers with exact source citations.</p>
+            </div>
+
+            <div class="search-box-container">
+                <input type="text" id="questionInput" class="search-input" placeholder="e.g. What are the Acme Corp AI usage guidelines regarding PII?" value="What are the Acme Corp AI usage guidelines regarding PII?">
+                <button id="queryBtn" class="btn-query" onclick="runRAGQuery()">Search RAG</button>
+            </div>
+
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Sample Questions:</span>
+                <div class="sample-chips">
+                    <div class="chip" onclick="setQuestion('What are the Acme Corp AI usage guidelines regarding PII?')">AI PII Policy</div>
+                    <div class="chip" onclick="setQuestion('Which databases and vector stores are used in the system architecture?')">Databases & Architecture</div>
+                    <div class="chip" onclick="setQuestion('What approval is required for financial refunds over $500?')">Refund Approval Limit</div>
+                </div>
+            </div>
+
+            <div id="outputSection" class="output-section">
+                <div class="answer-box">
+                    <div class="answer-header">
+                        <span>Grounded Answer Synthesis</span>
+                        <span id="genModeBadge" class="mode-badge">LOCAL VECTOR SYNTHESIZER</span>
+                    </div>
+                    <div id="answerText" class="answer-text">Based on retrieved documentation:
+- From knowledge_base.txt (Chunk 0): All AI deployments must adhere to zero-retention data policies. User PII (Personally Identifiable Information) must be sanitized before sending prompts to external LLM vendors.</div>
+                    <div>
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">Source Citations:</span>
+                        <div id="sourcesList" class="sources-list">
+                            <span class="source-tag">[knowledge_base.txt | Chunk 0]</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chunks-section">
+                    <div class="chunks-title">Retrieved Vector Similarity Chunks (Top Match):</div>
+                    <div id="chunksList">
+                        <div class="chunk-card">
+                            <div class="chunk-meta">
+                                <span>Source: knowledge_base.txt (Chunk 0)</span>
+                                <span class="match-score">Match Score: 94.5%</span>
+                            </div>
+                            <div class="chunk-snippet">Acme Corp AI Usage Guidelines and Data Privacy Policy: 1. All AI deployments must adhere to zero-retention data policies. 2. User PII (Personally Identifiable Information) must be sanitized before sending prompts...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <h3>Knowledge Base Index</h3>
+            
+            <div class="docs-list" id="docsList">
+                <div class="doc-item">
+                    <span>knowledge_base.txt</span>
+                    <span style="color: #a855f7; font-weight:600;">2 Chunks</span>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 0.5rem;">Index Custom Document</h3>
+            <div class="ingest-form">
+                <input type="text" id="docNameInput" class="form-input" placeholder="Filename (e.g. refund_policy.txt)">
+                <textarea id="docContentInput" class="form-textarea" rows="4" placeholder="Paste custom document text here..."></textarea>
+                <button class="btn-ingest" onclick="ingestDocument()">+ Ingest & Vector Index</button>
+            </div>
+            <div id="ingestMsg" style="font-size: 0.8rem; color: #34d399;"></div>
+        </div>
+    </main>
+
+    <script>
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                document.getElementById('apiBannerMsg').textContent = data.api_key_message;
+                const badge = document.getElementById('apiBannerBadge');
+                if (data.api_key_configured) {
+                    badge.textContent = 'GPT-4o Key Active';
+                    badge.style.background = 'rgba(16, 185, 129, 0.2)';
+                    badge.style.color = '#34d399';
+                } else {
+                    badge.textContent = 'Optional API Key';
+                    badge.style.background = 'rgba(255, 255, 255, 0.1)';
+                    badge.style.color = '#cbd5e1';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchDocuments() {
+            try {
+                const res = await fetch('/api/documents');
+                const data = await res.json();
+                
+                const list = document.getElementById('docsList');
+                list.innerHTML = '';
+                for (const [name, chunks] of Object.entries(data.documents)) {
+                    const item = document.createElement('div');
+                    item.className = 'doc-item';
+                    item.innerHTML = `<span>${name}</span><span style="color: #a855f7; font-weight:600;">${chunks.length} Chunks</span>`;
+                    list.appendChild(item);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function ingestDocument() {
+            const filename = document.getElementById('docNameInput').value.trim();
+            const content = document.getElementById('docContentInput').value.trim();
+            if (!filename || !content) {
+                alert('Please provide both filename and content text.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/ingest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename, content })
+                });
+                const data = await res.json();
+                document.getElementById('ingestMsg').textContent = data.message;
+                document.getElementById('docNameInput').value = '';
+                document.getElementById('docContentInput').value = '';
+                fetchDocuments();
+            } catch (err) {
+                alert('Ingestion error: ' + err.message);
+            }
+        }
+
+        function setQuestion(q) {
+            document.getElementById('questionInput').value = q;
+            runRAGQuery();
+        }
+
+        async function runRAGQuery() {
+            const question = document.getElementById('questionInput').value.trim();
+            if (!question) return;
+
+            const btn = document.getElementById('queryBtn');
+            btn.textContent = 'Retrieving...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const data = await res.json();
+
+                document.getElementById('genModeBadge').textContent = data.mode.toUpperCase();
+                document.getElementById('answerText').textContent = data.answer;
+
+                const sourcesBox = document.getElementById('sourcesList');
+                sourcesBox.innerHTML = '';
+                if (data.sources) {
+                    data.sources.forEach(src => {
+                        const tag = document.createElement('span');
+                        tag.className = 'source-tag';
+                        tag.textContent = src;
+                        sourcesBox.appendChild(tag);
+                    });
+                }
+
+                const chunksBox = document.getElementById('chunksList');
+                chunksBox.innerHTML = '';
+                if (data.retrieved_chunks) {
+                    data.retrieved_chunks.forEach(c => {
+                        const card = document.createElement('div');
+                        card.className = 'chunk-card';
+                        card.innerHTML = `
+                            <div class="chunk-meta">
+                                <span>Source: ${c.source} (Chunk ${c.id})</span>
+                                <span class="match-score">Match Score: ${c.match_percentage}%</span>
+                            </div>
+                            <div class="chunk-snippet">${c.text}</div>
+                        `;
+                        chunksBox.appendChild(card);
+                    });
+                }
+
+            } catch (err) {
+                document.getElementById('answerText').textContent = 'Error executing RAG query: ' + err.message;
+            } finally {
+                btn.textContent = 'Search RAG';
+                btn.disabled = false;
+            }
+        }
+
+        fetchStatus();
+        fetchDocuments();
+    </script>
+</body>
+</html>
