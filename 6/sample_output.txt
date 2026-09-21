@@ -1,0 +1,50 @@
+POLICY COMPLIANCE AGENT
+=============================================
+Enter the details of your request.
+Request types: expense, employee_data_export,
+client_data_share, software_install
+
+Employee name: Rahul
+Department: Finance
+Request type: expense
+Amount (enter 0 if not applicable): 1500
+Does it contain personal data/PII? (yes/no): no
+Will it be shared externally? (yes/no): no
+Has required approval been obtained? (yes/no): no
+
+---------------------------------------------
+COMPLIANCE RESULT
+---------------------------------------------
+Employee : Rahul
+Status   : NON-COMPLIANT
+Action   : BLOCK
+
+Reason:
+- Expense requires approval.
+- Expense above 1000 requires approval.
+---------------------------------------------
+
+Evaluate another request? (yes/no): yes
+
+Employee name: Priya
+Department: Engineering
+Request type: software_install
+Amount (enter 0 if not applicable): 0
+Does it contain personal data/PII? (yes/no): no
+Will it be shared externally? (yes/no): no
+Has required approval been obtained? (yes/no): yes
+
+---------------------------------------------
+COMPLIANCE RESULT
+---------------------------------------------
+Employee : Priya
+Status   : COMPLIANT
+Action   : ALLOW
+
+Reason:
+- All applicable policy rules were satisfied.
+---------------------------------------------
+
+Evaluate another request? (yes/no): no
+
+Agent stopped.
