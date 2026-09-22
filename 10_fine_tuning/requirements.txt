@@ -1,0 +1,4 @@
+# Fine-Tuning for Domain Adaptation Dependencies
+pydantic>=2.0.0
+pytest>=7.0.0
+openai>=1.0.0

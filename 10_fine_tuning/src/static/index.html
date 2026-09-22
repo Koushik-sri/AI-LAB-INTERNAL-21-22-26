@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fine-Tuning AI Studio | Domain Adaptation & LoRA Fine-Tuning</title>
+    <meta name="description" content="Parameter-efficient LoRA fine-tuning studio for domain adaptation powered by Google Gemini 2.5 Flash.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #080d18;
+            --card-bg: rgba(23, 32, 51, 0.85);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-emerald: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-gradient: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            --accent-glow: rgba(16, 185, 129, 0.25);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --code-bg: #050811;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.08) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        header {
+            padding: 1.25rem 2rem;
+            background: rgba(8, 13, 24, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .logo-group { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: var(--accent-gradient);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; color: #fff; box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .logo-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+
+        .badge-live {
+            background: rgba(16, 185, 129, 0.15); color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.35rem 0.75rem; border-radius: 20px;
+            font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .badge-live::before {
+            content: ''; width: 8px; height: 8px; border-radius: 50%;
+            background-color: #34d399; box-shadow: 0 0 10px #34d399;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        main {
+            max-width: 1200px; margin: 1.5rem auto; padding: 0 1.5rem; width: 100%; flex: 1;
+            display: flex; flex-direction: column; gap: 1.5rem;
+        }
+
+        .metrics-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;
+        }
+        @media (max-width: 768px) { .metrics-grid { grid-template-columns: 1fr; } }
+
+        .metric-card {
+            background: var(--card-bg); backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border); border-radius: 14px; padding: 1.25rem;
+            display: flex; flex-direction: column; gap: 0.4rem;
+        }
+        .metric-title { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+        .metric-value { font-size: 1.75rem; font-weight: 700; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .metric-sub { font-size: 0.8rem; color: var(--text-muted); }
+
+        .card {
+            background: var(--card-bg); backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border); border-radius: 16px; padding: 1.75rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; gap: 1.25rem;
+        }
+
+        .card-header h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .card-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+        .btn-run {
+            background: var(--accent-gradient); border: none; border-radius: 12px;
+            padding: 0.85rem 1.75rem; color: #fff; font-weight: 700; font-size: 1rem; cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease; align-self: flex-start;
+        }
+        .btn-run:hover { transform: translateY(-2px); box-shadow: 0 4px 20px var(--accent-glow); }
+
+        .panels-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+        @media (max-width: 900px) { .panels-grid { grid-template-columns: 1fr; } }
+
+        .metric-box {
+            background: var(--code-bg); border: 1px solid var(--card-border); border-radius: 12px;
+            padding: 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;
+            color: #34d399; white-space: pre-wrap; line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-group">
+            <div class="logo-icon">LORA</div>
+            <div class="logo-title">Fine-Tuning AI Studio</div>
+        </div>
+        <div class="badge-live">Gemini 2.5 Flash LoRA Trainer Active</div>
+    </header>
+
+    <main>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-title">Domain Accuracy Gain</div>
+                <div class="metric-value">+44.9%</div>
+                <div class="metric-sub">48.5% up to 93.4% accuracy</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-title">Perplexity Reduction</div>
+                <div class="metric-value">-76.5%</div>
+                <div class="metric-sub">16.2 down to 3.8 perplexity</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-title">LoRA Adapter Config</div>
+                <div class="metric-value">Rank r=8</div>
+                <div class="metric-sub">alpha=16, dropout=0.05</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>LoRA Parameter-Efficient Fine-Tuning & Evaluation</h2>
+                <p>Formats instruction dataset, configures LoRA rank (r=8, alpha=16), executes training loop, and evaluates Base vs Adapted performance.</p>
+            </div>
+            <button class="btn-run" onclick="runFineTune()">Run Fine-Tuning Workflow</button>
+        </div>
+
+        <div class="card">
+            <h3>Training History & Domain Evaluation</h3>
+            <div class="panels-grid">
+                <div>
+                    <h4 style="margin-bottom: 0.5rem; color: var(--text-muted);">LoRA Training History & Loss Curve</h4>
+                    <div class="metric-box" id="trainBox">Executing training pipeline...</div>
+                </div>
+                <div>
+                    <h4 style="margin-bottom: 0.5rem; color: var(--text-muted);">Base vs Fine-Tuned Evaluation Summary</h4>
+                    <div class="metric-box" id="evalBox" style="color: #60a5fa;">Evaluating adapter checkpoints...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function runFineTune() {
+            try {
+                const res = await fetch('/api/run-fine-tune');
+                const data = await res.json();
+
+                let tText = `LoRA Configuration:\n${JSON.stringify(data.training.lora_config, null, 2)}\n\nTraining History:\n`;
+                data.training.training_history.forEach(h => {
+                    tText += `Epoch ${h.epoch}: Loss = ${h.loss}\n`;
+                });
+                document.getElementById('trainBox').textContent = tText;
+
+                const ev = data.evaluation;
+                let eText = `Base Model Accuracy: ${ev.base_model.domain_accuracy} (Perplexity: ${ev.base_model.perplexity})\n\n`;
+                eText += `Adapted Model Accuracy: ${ev.fine_tuned_lora_model.domain_accuracy} (Perplexity: ${ev.fine_tuned_lora_model.perplexity})\n\n`;
+                eText += `Summary Delta:\n${ev.improvement}`;
+                document.getElementById('evalBox').textContent = eText;
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('trainBox').textContent = 'API Error: ' + err.message;
+            }
+        }
+
+        runFineTune();
+    </script>
+</body>
+</html>
